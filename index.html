@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MONAD 钱包余额查询</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 24px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .address-list {
+            width: 60%;
+            border-right: 1px solid #eee;
+            padding-right: 24px;
+        }
+
+        .summary-panel {
+            width: 40%;
+            padding-left: 24px;
+        }
+
+        .address-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .address-info {
+            flex: 1;
+            margin-right: 20px;
+        }
+
+        .address-number {
+            color: #666;
+            width: 40px;
+        }
+
+        .wallet-address {
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .balance-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .balance-item {
+            color: #666;
+        }
+
+        .balance-label {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .status-tag {
+            background: #fff7e6;
+            color: #fa8c16;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 12px;
+        }
+
+        .action-button {
+            background: #fa8c16;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        .action-button:hover {
+            opacity: 0.9;
+        }
+
+        .summary-title {
+            color: #666;
+            margin-bottom: 16px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-item {
+            background: #fafafa;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .total-balance {
+            font-size: 24px;
+            color: #fa8c16;
+            font-weight: 600;
+        }
+
+        .query-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .query-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .query-button {
+            background: #fa8c16;
+            color: white;
+            border: none;
+            padding: 8px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MONAD 钱包查询系统</h1>
+            <div class="query-controls">
+                <input type="text" 
+                       class="query-input" 
+                       placeholder="输入API密钥"
+                       id="apiKey"
+                       value="2u4VqFS9aYirT71pfdfcOglxVd81">
+                <button class="query-button" onclick="startQuery()">查询余额</button>
+            </div>
+        </div>
+
+        <div style="display: flex;">
+            <div class="address-list" id="addressList">
+                <!-- 地址列表动态生成 -->
+            </div>
+
+            <div class="summary-panel">
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="balance-label">已查询地址</div>
+                        <div class="total-balance" id="totalAddresses">0/0</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="balance-label">总 MON 余额</div>
+                        <div class="total-balance" id="totalMON">0.00</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="balance-label">总 aprMON 余额</div>
+                        <div class="total-balance" id="totalAprMON">0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_CONFIG = {
+            tokens: 'https://api.blockvision.org/v2/monad/account/tokens'
+        };
+
+        // 模拟测试数据
+        const demoData = [
+            { address: '0xA2e8FbA7d3e34357E3D460aC3B6C460a', 
+              MON: 187.29, 
+              aprMON: 40.6015,
+              status: '正常' },
+            { address: '0x3345E3dA6eD8dF308A0888A08', 
+              MON: 8.7633, 
+              aprMON: 12.456,
+              status: '待处理' }
+        ];
+
+        function renderAddressList(data) {
+            const container = document.getElementById('addressList');
+            let html = '';
+            
+            data.forEach((item, index) => {
+                html += `
+                    <div class="address-item">
+                        <div class="address-number">${index + 1}</div>
+                        <div class="address-info">
+                            <div class="wallet-address">${item.address}</div>
+                            <div class="balance-group">
+                                <div class="balance-item">
+                                    <div class="balance-label">MON</div>
+                                    <div>${item.MON.toFixed(4)}</div>
+                                </div>
+                                <div class="balance-item">
+                                    <div class="balance-label">aprMON</div>
+                                    <div>${item.aprMON.toFixed(4)}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="status-tag">${item.status}</div>
+                        <button class="action-button">详情</button>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            
+            // 更新统计信息
+            const totalMON = data.reduce((sum, item) => sum + item.MON, 0);
+            const totalAprMON = data.reduce((sum, item) => sum + item.aprMON, 0);
+            
+            document.getElementById('totalAddresses').textContent = 
+                `${data.length}/${data.length}`;
+            document.getElementById('totalMON').textContent = 
+                totalMON.toFixed(2);
+            document.getElementById('totalAprMON').textContent = 
+                totalAprMON.toFixed(2);
+        }
+
+        async function fetchBalance(address) {
+            try {
+                const response = await fetch(`${API_CONFIG.tokens}?address=${address}`, {
+                    headers: {
+                        'x-api-key': document.getElementById('apiKey').value.trim()
+                    }
+                });
+                
+                const data = await response.json();
+                
+                return {
+                    MON: parseFloat(data.find(t => 
+                        t.contractAddress === '0x0000000000000000000000000000000000000000')?.balance || 0),
+                    aprMON: parseFloat(data.find(t => 
+                        t.contractAddress === '0xb2f82D0f38dc453D596Ad40A37799446Cc89274A')?.balance || 0)
+                };
+            } catch (error) {
+                console.error('查询失败:', error);
+                return { MON: 0, aprMON: 0 };
+            }
+        }
+
+        async function startQuery() {
+            // 实际使用时应从输入框获取地址
+            const results = await Promise.all(demoData.map(async item => {
+                const balances = await fetchBalance(item.address);
+                return {
+                    ...item,
+                    ...balances
+                };
+            }));
+            
+            renderAddressList(results);
+        }
+
+        // 初始化显示测试数据
+        renderAddressList(demoData);
+    </script>
+</body>
+</html>
