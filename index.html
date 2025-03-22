@@ -1,291 +1,138 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONAD 钱包余额查询</title>
+    <title>区块链地址分析</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            background: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
             padding: 20px;
+            background-color: #f8f9fa;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        .analysis-box {
             background: white;
+            padding: 2rem;
             border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        .header {
+        #startAnalysis {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        #startAnalysis:hover {
+            background: #1976D2;
+        }
+
+        .result-panel {
+            margin-top: 2rem;
+            border-top: 1px solid #eee;
+            padding-top: 1.5rem;
+        }
+
+        .metric-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #eee;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f5f5f5;
+            border-radius: 6px;
         }
 
-        .address-list {
-            width: 60%;
-            border-right: 1px solid #eee;
-            padding-right: 24px;
-        }
-
-        .summary-panel {
-            width: 40%;
-            padding-left: 24px;
-        }
-
-        .address-item {
-            display: flex;
-            align-items: center;
-            padding: 16px;
-            border-bottom: 1px solid #f5f5f5;
-        }
-
-        .address-info {
-            flex: 1;
-            margin-right: 20px;
-        }
-
-        .address-number {
+        .metric-label {
             color: #666;
-            width: 40px;
         }
 
-        .wallet-address {
+        .metric-value {
             color: #333;
             font-weight: 500;
-            margin-bottom: 4px;
-        }
-
-        .balance-group {
-            display: flex;
-            gap: 20px;
-        }
-
-        .balance-item {
-            color: #666;
-        }
-
-        .balance-label {
-            font-size: 12px;
-            color: #999;
-        }
-
-        .status-tag {
-            background: #fff7e6;
-            color: #fa8c16;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-right: 12px;
-        }
-
-        .action-button {
-            background: #fa8c16;
-            color: white;
-            border: none;
-            padding: 6px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: opacity 0.3s;
-        }
-
-        .action-button:hover {
-            opacity: 0.9;
-        }
-
-        .summary-title {
-            color: #666;
-            margin-bottom: 16px;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .summary-item {
-            background: #fafafa;
-            padding: 16px;
-            border-radius: 8px;
-        }
-
-        .total-balance {
-            font-size: 24px;
-            color: #fa8c16;
-            font-weight: 600;
-        }
-
-        .query-controls {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .query-input {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .query-button {
-            background: #fa8c16;
-            color: white;
-            border: none;
-            padding: 8px 24px;
-            border-radius: 4px;
-            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>MONAD 钱包查询系统</h1>
-            <div class="query-controls">
-                <input type="text" 
-                       class="query-input" 
-                       placeholder="输入API密钥"
-                       id="apiKey"
-                       value="2u4VqFS9aYirT71pfdfcOglxVd81">
-                <button class="query-button" onclick="startQuery()">查询余额</button>
+    <div class="analysis-box">
+        <button id="startAnalysis">开始分析</button>
+        <div class="result-panel">
+            <div class="metric-item">
+                <span class="metric-label">钱包地址</span>
+                <span class="metric-value" id="address">未查询</span>
             </div>
-        </div>
-
-        <div style="display: flex;">
-            <div class="address-list" id="addressList">
-                <!-- 地址列表动态生成 -->
+            <div class="metric-item">
+                <span class="metric-label">MON 余额</span>
+                <span class="metric-value" id="monBalance">0.0000</span>
             </div>
-
-            <div class="summary-panel">
-                <div class="summary-grid">
-                    <div class="summary-item">
-                        <div class="balance-label">已查询地址</div>
-                        <div class="total-balance" id="totalAddresses">0/0</div>
-                    </div>
-                    <div class="summary-item">
-                        <div class="balance-label">总 MON 余额</div>
-                        <div class="total-balance" id="totalMON">0.00</div>
-                    </div>
-                    <div class="summary-item">
-                        <div class="balance-label">总 aprMON 余额</div>
-                        <div class="total-balance" id="totalAprMON">0.00</div>
-                    </div>
-                </div>
+            <div class="metric-item">
+                <span class="metric-label">aprMON 余额</span>
+                <span class="metric-value" id="aprmONBalance">0.0000</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-label">交易数量</span>
+                <span class="metric-value" id="transactions">0</span>
             </div>
         </div>
     </div>
 
     <script>
         const API_CONFIG = {
-            tokens: 'https://api.blockvision.org/v2/monad/account/tokens'
+            tokens: 'https://api.blockvision.org/v2/monad/account/tokens',
+            transactions: 'https://api.blockvision.org/v2/monad/account/transactions'
         };
 
-        // 模拟测试数据
-        const demoData = [
-            { address: '0xA2e8FbA7d3e34357E3D460aC3B6C460a', 
-              MON: 187.29, 
-              aprMON: 40.6015,
-              status: '正常' },
-            { address: '0x3345E3dA6eD8dF308A0888A08', 
-              MON: 8.7633, 
-              aprMON: 12.456,
-              status: '待处理' }
-        ];
-
-        function renderAddressList(data) {
-            const container = document.getElementById('addressList');
-            let html = '';
-            
-            data.forEach((item, index) => {
-                html += `
-                    <div class="address-item">
-                        <div class="address-number">${index + 1}</div>
-                        <div class="address-info">
-                            <div class="wallet-address">${item.address}</div>
-                            <div class="balance-group">
-                                <div class="balance-item">
-                                    <div class="balance-label">MON</div>
-                                    <div>${item.MON.toFixed(4)}</div>
-                                </div>
-                                <div class="balance-item">
-                                    <div class="balance-label">aprMON</div>
-                                    <div>${item.aprMON.toFixed(4)}</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="status-tag">${item.status}</div>
-                        <button class="action-button">详情</button>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
-            
-            // 更新统计信息
-            const totalMON = data.reduce((sum, item) => sum + item.MON, 0);
-            const totalAprMON = data.reduce((sum, item) => sum + item.aprMON, 0);
-            
-            document.getElementById('totalAddresses').textContent = 
-                `${data.length}/${data.length}`;
-            document.getElementById('totalMON').textContent = 
-                totalMON.toFixed(2);
-            document.getElementById('totalAprMON').textContent = 
-                totalAprMON.toFixed(2);
-        }
-
-        async function fetchBalance(address) {
+        document.getElementById('startAnalysis').addEventListener('click', async () => {
             try {
-                const response = await fetch(`${API_CONFIG.tokens}?address=${address}`, {
-                    headers: {
-                        'x-api-key': document.getElementById('apiKey').value.trim()
-                    }
-                });
+                // 示例地址，实际使用时应替换为输入地址
+                const address = '0xA2e8FbA7d3e34357E3D460aC3B6C460a'; 
                 
-                const data = await response.json();
-                
-                return {
-                    MON: parseFloat(data.find(t => 
-                        t.contractAddress === '0x0000000000000000000000000000000000000000')?.balance || 0),
-                    aprMON: parseFloat(data.find(t => 
-                        t.contractAddress === '0xb2f82D0f38dc453D596Ad40A37799446Cc89274A')?.balance || 0)
-                };
+                const [tokenData, txData] = await Promise.all([
+                    fetch(`${API_CONFIG.tokens}?address=${address}`, {
+                        headers: {
+                            'x-api-key': '2u4VqFS9aYirT71pfdfcOglxVd81'
+                        }
+                    }).then(res => {
+                        if (!res.ok) throw new Error(`HTTP错误 ${res.status}`);
+                        return res.json();
+                    }),
+                    
+                    fetch(`${API_CONFIG.transactions}?address=${address}`, {
+                        headers: {
+                            'x-api-key': '2u4VqFS9aYirT71pfdfcOglxVd81'
+                        }
+                    }).then(res => {
+                        if (!res.ok) throw new Error(`HTTP错误 ${res.status}`);
+                        return res.json();
+                    })
+                ]);
+
+                // 更新界面数据
+                document.getElementById('address').textContent = address;
+                document.getElementById('monBalance').textContent = 
+                    parseBalance(tokenData, '0x0000000000000000000000000000000000000000');
+                document.getElementById('aprmONBalance').textContent = 
+                    parseBalance(tokenData, '0xb2f82D0f38dc453D596Ad40A37799446Cc89274A');
+                document.getElementById('transactions').textContent = 
+                    txData?.total || 0;
+
             } catch (error) {
-                console.error('查询失败:', error);
-                return { MON: 0, aprMON: 0 };
+                console.error('API请求失败:', error);
+                alert(`请求失败: ${error.message}`);
             }
-        }
+        });
 
-        async function startQuery() {
-            // 实际使用时应从输入框获取地址
-            const results = await Promise.all(demoData.map(async item => {
-                const balances = await fetchBalance(item.address);
-                return {
-                    ...item,
-                    ...balances
-                };
-            }));
-            
-            renderAddressList(results);
+        function parseBalance(data, contractAddress) {
+            const token = data?.tokens?.find(t => t.contractAddress === contractAddress);
+            return token ? Number(token.balance).toFixed(4) : '0.0000';
         }
-
-        // 初始化显示测试数据
-        renderAddressList(demoData);
     </script>
 </body>
 </html>
